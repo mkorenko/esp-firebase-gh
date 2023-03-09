@@ -3,6 +3,12 @@
 The library allows to easily integrate with the [firebase-google-home framework](https://github.com/mkorenko/firebase-google-home) by providing simple "on command" and "report state" callbacks.
 Depends and based on: [Firebase-ESP-Client](https://github.com/mobizt/Firebase-ESP-Client).
 
+### Configure Firebase Web API Key and Email/Password authentication
+1. Enable the [Identity provider](https://console.cloud.google.com/customer-identity/providers) for your Firebase project to activate the API key for your project. \
+You can now see the **Web API Key** on your projects [setting page](https://console.firebase.google.com/project/_settings/general).
+2. Go to the [Providers page](https://console.firebase.google.com/project/_/authentication/providers) and enable the **Email/Password** provider, click **Save**.
+3. Go to the [Users page](https://console.firebase.google.com/project/_/authentication/users) and add a user for your device.
+
 ### Library API / usage example
 Consider the following Arduino IDE project example:
 ```
