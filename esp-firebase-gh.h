@@ -5,6 +5,22 @@
 #include "Arduino.h"
 #include <Firebase_ESP_Client.h>
 
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
+
+#ifndef DISABLE_LOCAL_FULFILLMENT
+#include <WiFiUdp.h>
+#if defined(ESP8266)
+#include <ESP8266WebServer.h>
+#else
+#include <WebServer.h>
+#endif
+#endif
+
+
 #ifndef DEVICE_ONLINE_REFRESH_INTERVAL_MS
 #define DEVICE_ONLINE_REFRESH_INTERVAL_MS 60000
 #endif
@@ -13,8 +29,34 @@
 #define FIREBASE_QUERY_DEBOUNCE_MS 100
 #endif
 
+
+#ifndef DISABLE_LOCAL_FULFILLMENT
+
+#ifndef LOCAL_SDK_HTTP_PORT
+#define LOCAL_SDK_HTTP_PORT 3310
+#endif
+
+#ifndef LOCAL_SDK_UDP_MAX_PACKET_SIZE
+#define LOCAL_SDK_UDP_MAX_PACKET_SIZE 32
+#endif
+
+#ifndef LOCAL_SDK_UDP_DISCOVERY_STRING
+#define LOCAL_SDK_UDP_DISCOVERY_STRING "firebase_gh_d"
+#endif
+
+#ifndef LOCAL_SDK_UDP_BROADCAST_PORT
+#define LOCAL_SDK_UDP_BROADCAST_PORT 3311
+#endif
+
+#ifndef LOCAL_SDK_UDP_LISTEN_PORT
+#define LOCAL_SDK_UDP_LISTEN_PORT 3312
+#endif
+#endif
+
 class FirebaseEspGh {
   public:
+    FirebaseEspGh(void);
+
     void begin(
       const char *firebase_api_key,
       const char *firebase_user_email,
@@ -35,10 +77,21 @@ class FirebaseEspGh {
     void loop();
     void report_device_state();
   private:
+    #ifndef DISABLE_LOCAL_FULFILLMENT
+    #if defined(ESP8266)
+    WiFiUDP _udp;
+    ESP8266WebServer _http_server;
+    #else
+    WiFiUDP _udp;
+    WebServer _http_server;
+    #endif
+    #endif
+
     const char *_db_url;
     const char *_api_key;
     const char *_user_email;
     const char *_user_password;
+    const char *_device_id;
     std::string _device_root;
     FirebaseConfig _config;
     FirebaseAuth _auth;
@@ -69,6 +122,12 @@ class FirebaseEspGh {
 
     bool _report_state_scheduled = false;
     bool _report_device_state_loop();
+
+    #ifndef DISABLE_LOCAL_FULFILLMENT
+    void _handle_upd_discovery();
+    void _handle_http_cmd();
+    void _handle_http_device_state_query();
+    #endif
 };
 
 #endif
