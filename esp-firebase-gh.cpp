@@ -36,6 +36,18 @@ void FirebaseEspGh::_on_cmd_data_change() {
   }
 
   _cmd_result_scheduled = true;
+
+  FirebaseJsonData _request_id;
+  json->get(_request_id, "request_id");
+  if (_request_id.success) {
+    std::string request_id = _request_id.to<std::string>();
+    if (_cmd_result_request_id == request_id) {
+      json->clear();
+      return;
+    }
+    _cmd_result_request_id = request_id;
+  }
+
   _cmd_result.clear();
 
   FirebaseJsonData _command;
@@ -98,6 +110,24 @@ void FirebaseEspGh::_handle_http_cmd() {
 
   FirebaseJson json;
   json.setJsonData(_http_server.arg("plain"));
+
+  FirebaseJsonData _request_id;
+  json.get(_request_id, "request_id");
+  if (_request_id.success) {
+    std::string request_id = _request_id.to<std::string>();
+    if (_cmd_result_request_id == request_id) {
+      _cmd_result.toString(http_response);
+      _http_server.send(
+          200,
+          "application/json",
+          http_response.c_str()
+      );
+
+      return;
+    }
+
+    _cmd_result_request_id = request_id;
+  }
 
   FirebaseJsonData _command;
   json.get(_command, "command");

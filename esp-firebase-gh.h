@@ -114,6 +114,7 @@ class FirebaseEspGh {
 
     bool _cmd_result_scheduled = false;
     FirebaseJson _cmd_result;
+    std::string _cmd_result_request_id;
     bool _cmd_result_loop();
 
     bool _power_at_reported = false;
