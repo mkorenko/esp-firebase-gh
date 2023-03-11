@@ -74,26 +74,33 @@ void FirebaseEspGh::_on_cmd_data_change() {
   _on_gh_command(&_cmd_result, command, params);
 }
 
+// LOCAL_FULFILLMENT
 #ifndef DISABLE_LOCAL_FULFILLMENT
-
-void FirebaseEspGh::_handle_upd_discovery() {
+bool FirebaseEspGh::_handle_upd_discovery() {
   int packet_size = _udp.parsePacket();
-  if (!packet_size || packet_size > LOCAL_SDK_UDP_MAX_PACKET_SIZE) { return; }
+  if (!packet_size) { return false; }
+
+  if (packet_size > LOCAL_SDK_UDP_MAX_PACKET_SIZE) {
+    return true;
+  }
 
   char incoming_packet[packet_size + 1];
   _udp.read(incoming_packet, packet_size);
   incoming_packet[packet_size] = 0;
 
   if (strcmp(incoming_packet, LOCAL_SDK_UDP_DISCOVERY_STRING) != 0) {
-    return;
+    return true;
   }
 
   _udp.beginPacket(_udp.remoteIP(), LOCAL_SDK_UDP_LISTEN_PORT);
   _udp.printf(_device_id);
   _udp.endPacket();
+  return true;
 }
 
 void FirebaseEspGh::_handle_http_cmd() {
+  _http_request_handled = true;
+
   _cmd_result.clear();
   std::string http_response;
 
@@ -169,6 +176,8 @@ void FirebaseEspGh::_handle_http_cmd() {
 }
 
 void FirebaseEspGh::_handle_http_device_state_query() {
+  _http_request_handled = true;
+
   FirebaseJson state;
   FirebaseJson gh_state;
   FirebaseJson gh_notifications;
@@ -183,8 +192,8 @@ void FirebaseEspGh::_handle_http_device_state_query() {
       http_response.c_str()
   );
 }
-
 #endif
+// END - LOCAL_FULFILLMENT
 
 bool FirebaseEspGh::_cmd_result_loop() {
   if (!_cmd_result_scheduled) { return false; }
@@ -258,6 +267,7 @@ void FirebaseEspGh::begin(
   _on_gh_command = on_gh_command;
   _on_device_state_request = on_device_state_request;
 
+  // LOCAL_FULFILLMENT
   #ifndef DISABLE_LOCAL_FULFILLMENT
   // UDP discovery
   _udp.begin(LOCAL_SDK_UDP_BROADCAST_PORT);
@@ -275,6 +285,7 @@ void FirebaseEspGh::begin(
   );
   _http_server.begin();
   #endif
+  // END - LOCAL_FULFILLMENT
 
   // Firebase
   Firebase.begin(&_config, &_auth);
@@ -287,13 +298,26 @@ void FirebaseEspGh::loop() {
   // perf: one firebase action in one loop cycle
   Firebase.RTDB.readStream(&_cmd_change_fbdo);
   if (_cmd_change_fbdo.streamAvailable()) {
-    return _on_cmd_data_change();
+    _on_cmd_data_change();
+    _firebase_last_query_at = millis();
+    return;
   }
 
+  // LOCAL_FULFILLMENT
   #ifndef DISABLE_LOCAL_FULFILLMENT
-  _handle_upd_discovery();
+  if(_handle_upd_discovery()) {
+    _firebase_last_query_at = millis();
+    return;
+  };
+
   _http_server.handleClient();
+  if (_http_request_handled) {
+    _http_request_handled = false;
+    _firebase_last_query_at = millis();
+    return;
+  }
   #endif
+  // END - LOCAL_FULFILLMENT
 
   if (millis() - _firebase_last_query_at < FIREBASE_QUERY_DEBOUNCE_MS) {
     return;

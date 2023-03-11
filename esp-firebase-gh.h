@@ -11,6 +11,7 @@
 #include <WiFi.h>
 #endif
 
+// LOCAL_FULFILLMENT
 #ifndef DISABLE_LOCAL_FULFILLMENT
 #include <WiFiUdp.h>
 #if defined(ESP8266)
@@ -18,19 +19,6 @@
 #else
 #include <WebServer.h>
 #endif
-#endif
-
-
-#ifndef DEVICE_ONLINE_REFRESH_INTERVAL_MS
-#define DEVICE_ONLINE_REFRESH_INTERVAL_MS 60000
-#endif
-
-#ifndef FIREBASE_QUERY_DEBOUNCE_MS
-#define FIREBASE_QUERY_DEBOUNCE_MS 100
-#endif
-
-
-#ifndef DISABLE_LOCAL_FULFILLMENT
 
 #ifndef LOCAL_SDK_HTTP_PORT
 #define LOCAL_SDK_HTTP_PORT 3310
@@ -51,6 +39,15 @@
 #ifndef LOCAL_SDK_UDP_LISTEN_PORT
 #define LOCAL_SDK_UDP_LISTEN_PORT 3312
 #endif
+#endif
+// END - LOCAL_FULFILLMENT
+
+#ifndef DEVICE_ONLINE_REFRESH_INTERVAL_MS
+#define DEVICE_ONLINE_REFRESH_INTERVAL_MS 60000
+#endif
+
+#ifndef FIREBASE_QUERY_DEBOUNCE_MS
+#define FIREBASE_QUERY_DEBOUNCE_MS 100
 #endif
 
 class FirebaseEspGh {
@@ -77,6 +74,7 @@ class FirebaseEspGh {
     void loop();
     void report_device_state();
   private:
+    // LOCAL_FULFILLMENT
     #ifndef DISABLE_LOCAL_FULFILLMENT
     #if defined(ESP8266)
     WiFiUDP _udp;
@@ -85,7 +83,12 @@ class FirebaseEspGh {
     WiFiUDP _udp;
     WebServer _http_server;
     #endif
+    bool _http_request_handled = false;
+    bool _handle_upd_discovery();
+    void _handle_http_cmd();
+    void _handle_http_device_state_query();
     #endif
+    // END - LOCAL_FULFILLMENT
 
     const char *_db_url;
     const char *_api_key;
@@ -123,12 +126,6 @@ class FirebaseEspGh {
 
     bool _report_state_scheduled = false;
     bool _report_device_state_loop();
-
-    #ifndef DISABLE_LOCAL_FULFILLMENT
-    void _handle_upd_discovery();
-    void _handle_http_cmd();
-    void _handle_http_device_state_query();
-    #endif
 };
 
 #endif
