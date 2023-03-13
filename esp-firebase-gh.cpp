@@ -104,7 +104,7 @@ void FirebaseEspGh::_handle_http_cmd() {
   _cmd_result.clear();
   std::string http_response;
 
-  if (_http_server.hasArg("plain")== false){
+  if (_http_server.hasArg("plain") == false){
     _cmd_result.add("error_code", "hardError");
     _cmd_result.toString(http_response);
     _http_server.send(
@@ -178,14 +178,20 @@ void FirebaseEspGh::_handle_http_cmd() {
 void FirebaseEspGh::_handle_http_device_state_query() {
   _http_request_handled = true;
 
-  FirebaseJson state;
   FirebaseJson gh_state;
   FirebaseJson gh_notifications;
+  FirebaseJson custom_state;
 
-  _on_device_state_request(&state, &gh_state, &gh_notifications);
+  _on_device_state_request(&gh_state, &gh_notifications, &custom_state);
 
   std::string http_response;
-  gh_state.toString(http_response);
+  if (_http_server.hasArg("all")){
+    gh_state.add("gh_notifications", gh_notifications);
+    custom_state.set("gh_state", gh_state);
+    custom_state.toString(http_response);
+  } else {
+    gh_state.toString(http_response);
+  }
   _http_server.send(
       200,
       "application/json",
@@ -225,15 +231,15 @@ bool FirebaseEspGh::_report_device_state_loop() {
   if (!_report_state_scheduled) { return false; }
   _report_state_scheduled = false;
 
-  FirebaseJson state;
   FirebaseJson gh_state;
   FirebaseJson gh_notifications;
-  _on_device_state_request(&state, &gh_state, &gh_notifications);
+  FirebaseJson custom_state;
+  _on_device_state_request(&gh_state, &gh_notifications, &custom_state);
 
   gh_state.add("gh_notifications", gh_notifications);
-  state.set("gh_state", gh_state);
+  custom_state.set("gh_state", gh_state);
 
-  Firebase.RTDB.set(&_fbdo, _device_root + "/state", &state);
+  Firebase.RTDB.set(&_fbdo, _device_root + "/state", &custom_state);
 
   return true;
 }
@@ -327,11 +333,11 @@ void FirebaseEspGh::loop() {
     _firebase_last_query_at = millis();
     return;
   }
-  if (_report_online_status_loop()) {
+  if (_report_device_state_loop()) {
     _firebase_last_query_at = millis();
     return;
   }
-  if (_report_device_state_loop()) {
+  if (_report_online_status_loop()) {
     _firebase_last_query_at = millis();
     return;
   }
