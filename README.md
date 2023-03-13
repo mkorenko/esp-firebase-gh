@@ -60,9 +60,6 @@ void gh_on_command(
 
       // success - return new partial GH state
       // https://github.com/mkorenko/firebase-google-home#device_id---cmd---result
-      //
-      // ... code to include current other state here ...
-      // + return new "on" state:
       result->add("on", on);
       return;
     }
