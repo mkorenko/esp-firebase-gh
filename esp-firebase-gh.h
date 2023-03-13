@@ -66,9 +66,9 @@ class FirebaseEspGh {
           FirebaseJson &params
       )> on_gh_command,
       std::function<void (
-          FirebaseJson *state,
           FirebaseJson *gh_state,
-          FirebaseJson *gh_notifications
+          FirebaseJson *gh_notifications,
+          FirebaseJson *custom_state
       )> on_device_state_request
     );
     void loop();
@@ -106,9 +106,9 @@ class FirebaseEspGh {
         FirebaseJson &params
     )> _on_gh_command;
     std::function<void (
-        FirebaseJson *state,
         FirebaseJson *gh_state,
-        FirebaseJson *gh_notifications
+        FirebaseJson *gh_notifications,
+        FirebaseJson *custom_state
     )> _on_device_state_request;
 
     void _on_cmd_data_change();

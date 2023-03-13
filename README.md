@@ -60,6 +60,9 @@ void gh_on_command(
 
       // success - return new partial GH state
       // https://github.com/mkorenko/firebase-google-home#device_id---cmd---result
+      //
+      // ... code to include current other state here ...
+      // + return new "on" state:
       result->add("on", on);
       return;
     }
@@ -75,15 +78,10 @@ void gh_on_command(
 
 // "report state" callback
 void gh_on_device_state_request(
-    FirebaseJson *state,
     FirebaseJson *gh_state,
-    FirebaseJson *gh_notifications
+    FirebaseJson *gh_notifications,
+    FirebaseJson *custom_state
 ) {
-  // custom state
-  // https://github.com/mkorenko/firebase-google-home#device_id---state
-  state->add("internal_device_status", {internal_device_status_value});
-  state->set("timestamp/.sv", "timestamp");
-
   // gh state
   // https://github.com/mkorenko/firebase-google-home#device_id---state---gh_state
   gh_state->add("on", {bool_your_device_is_on});
@@ -104,6 +102,11 @@ void gh_on_device_state_request(
     notification.add("errorCode", "needsWater");
     gh_notifications->add("RunCycle", notification);
   }
+
+  // custom state
+  // https://github.com/mkorenko/firebase-google-home#device_id---state
+  custom_state->add("local_ip", {device_local_ip});
+  custom_state->set("timestamp/.sv", "timestamp");
 }
 
 void setup() {

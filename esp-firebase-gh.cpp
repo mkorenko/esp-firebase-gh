@@ -250,9 +250,9 @@ void FirebaseEspGh::begin(
       FirebaseJson &params
     )> on_gh_command,
     std::function<void (
-        FirebaseJson *state,
         FirebaseJson *gh_state,
-        FirebaseJson *gh_notifications
+        FirebaseJson *gh_notifications,
+        FirebaseJson *custom_state
     )> on_device_state_request
 ) {
   // config
