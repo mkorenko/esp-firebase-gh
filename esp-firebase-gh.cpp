@@ -74,6 +74,15 @@ void FirebaseEspGh::_on_cmd_data_change() {
   _on_gh_command(&_cmd_result, command, params);
 }
 
+void FirebaseEspGh::_fill_sys_data(FirebaseJson *system_data) {
+  FirebaseJson network_data;
+  network_data.add("ip", WiFi.localIP().toString().c_str());
+  network_data.add("rssi", WiFi.RSSI());
+  system_data->add("net", network_data);
+
+  system_data->set("online_at/.sv", "timestamp");
+}
+
 // LOCAL_FULFILLMENT
 #ifndef DISABLE_LOCAL_FULFILLMENT
 bool FirebaseEspGh::_handle_upd_discovery() {
@@ -181,13 +190,18 @@ void FirebaseEspGh::_handle_http_device_state_query() {
   FirebaseJson gh_state;
   FirebaseJson gh_notifications;
   FirebaseJson custom_state;
-
   _on_device_state_request(&gh_state, &gh_notifications, &custom_state);
+
+  FirebaseJson system_data;
+  _fill_sys_data(&system_data);
+  custom_state.set("_sys", system_data);
+
+  custom_state.set("timestamp", millis());
 
   std::string http_response;
   if (_http_server.hasArg("all")){
-    gh_state.add("gh_notifications", gh_notifications);
-    custom_state.set("gh_state", gh_state);
+    gh_state.add("_gh_notifications", gh_notifications);
+    custom_state.set("_gh_state", gh_state);
     custom_state.toString(http_response);
   } else {
     gh_state.toString(http_response);
@@ -223,7 +237,9 @@ bool FirebaseEspGh::_report_online_status_loop() {
   }
 
   _report_online_last_at = millis();
-  Firebase.RTDB.setTimestamp(&_fbdo, _device_root + "/online_at");
+  FirebaseJson system_data;
+  _fill_sys_data(&system_data);
+  Firebase.RTDB.set(&_fbdo, _device_root + "/state/system", &system_data);
   return true;
 }
 
@@ -236,8 +252,14 @@ bool FirebaseEspGh::_report_device_state_loop() {
   FirebaseJson custom_state;
   _on_device_state_request(&gh_state, &gh_notifications, &custom_state);
 
-  gh_state.add("gh_notifications", gh_notifications);
-  custom_state.set("gh_state", gh_state);
+  gh_state.add("_gh_notifications", gh_notifications);
+  custom_state.set("_gh_state", gh_state);
+
+  FirebaseJson system_data;
+  _fill_sys_data(&system_data);
+  custom_state.set("_sys", system_data);
+
+  custom_state.set("timestamp/.sv", "timestamp");
 
   Firebase.RTDB.set(&_fbdo, _device_root + "/state", &custom_state);
 

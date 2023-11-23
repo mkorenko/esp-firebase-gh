@@ -112,6 +112,7 @@ class FirebaseEspGh {
     )> _on_device_state_request;
 
     void _on_cmd_data_change();
+    void _fill_sys_data(FirebaseJson *system_data);
 
     unsigned long _firebase_last_query_at = 0;
 
