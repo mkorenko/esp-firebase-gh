@@ -74,13 +74,22 @@ void FirebaseEspGh::_on_cmd_data_change() {
   _on_gh_command(&_cmd_result, command, params);
 }
 
-void FirebaseEspGh::_fill_sys_data(FirebaseJson *system_data) {
+void FirebaseEspGh::_fill_sys_data(FirebaseJson *system_data, bool isFirebase) {
   FirebaseJson network_data;
   network_data.add("ip", WiFi.localIP().toString().c_str());
   network_data.add("rssi", WiFi.RSSI());
   system_data->add("net", network_data);
 
-  system_data->set("online_at/.sv", "timestamp");
+  _add_timestamp(system_data, "online_at", isFirebase);
+}
+
+
+void FirebaseEspGh::_add_timestamp(FirebaseJson *data, char *key, bool isFirebase) {
+  if (isFirebase) {
+    data->set(std::string(key) + "/.sv", "timestamp");
+  } else {
+    data->set(std::string(key), millis());
+  }
 }
 
 // LOCAL_FULFILLMENT
@@ -184,7 +193,24 @@ void FirebaseEspGh::_handle_http_cmd() {
   );
 }
 
-void FirebaseEspGh::_handle_http_device_state_query() {
+void FirebaseEspGh::_handle_http_device_gh_state() {
+  _http_request_handled = true;
+
+  FirebaseJson gh_state;
+  FirebaseJson gh_notifications;
+  FirebaseJson custom_state;
+  _on_device_state_request(&gh_state, &gh_notifications, &custom_state);
+
+  std::string http_response;
+  gh_state.toString(http_response);
+  _http_server.send(
+      200,
+      "application/json",
+      http_response.c_str()
+  );
+}
+
+void FirebaseEspGh::_handle_http_device_state() {
   _http_request_handled = true;
 
   FirebaseJson gh_state;
@@ -193,19 +219,12 @@ void FirebaseEspGh::_handle_http_device_state_query() {
   _on_device_state_request(&gh_state, &gh_notifications, &custom_state);
 
   FirebaseJson system_data;
-  _fill_sys_data(&system_data);
+  _fill_sys_data(&system_data, false);
   custom_state.set("_sys", system_data);
-
-  custom_state.set("timestamp", millis());
+  _add_timestamp(&custom_state, "_timestamp", false);
 
   std::string http_response;
-  if (_http_server.hasArg("all")){
-    gh_state.add("_gh_notifications", gh_notifications);
-    custom_state.set("_gh_state", gh_state);
-    custom_state.toString(http_response);
-  } else {
-    gh_state.toString(http_response);
-  }
+  custom_state.toString(http_response);
   _http_server.send(
       200,
       "application/json",
@@ -238,7 +257,7 @@ bool FirebaseEspGh::_report_online_status_loop() {
 
   _report_online_last_at = millis();
   FirebaseJson system_data;
-  _fill_sys_data(&system_data);
+  _fill_sys_data(&system_data, true);
   Firebase.RTDB.set(&_fbdo, _device_root + "/state/_sys", &system_data);
   return true;
 }
@@ -256,10 +275,9 @@ bool FirebaseEspGh::_report_device_state_loop() {
   custom_state.set("_gh_state", gh_state);
 
   FirebaseJson system_data;
-  _fill_sys_data(&system_data);
+  _fill_sys_data(&system_data, true);
   custom_state.set("_sys", system_data);
-
-  custom_state.set("timestamp/.sv", "timestamp");
+  _add_timestamp(&custom_state, "_timestamp", true);
 
   Firebase.RTDB.set(&_fbdo, _device_root + "/state", &custom_state);
 
@@ -306,10 +324,15 @@ void FirebaseEspGh::begin(
       HTTP_POST,
       std::bind(&FirebaseEspGh::_handle_http_cmd, this)
   );
-    _http_server.on(
+  _http_server.on(
       "/query",
       HTTP_GET,
-      std::bind(&FirebaseEspGh::_handle_http_device_state_query, this)
+      std::bind(&FirebaseEspGh::_handle_http_device_gh_state, this)
+  );
+  _http_server.on(
+      "/state",
+      HTTP_GET,
+      std::bind(&FirebaseEspGh::_handle_http_device_state, this)
   );
   _http_server.begin();
   #endif

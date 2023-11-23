@@ -86,7 +86,8 @@ class FirebaseEspGh {
     bool _http_request_handled = false;
     bool _handle_upd_discovery();
     void _handle_http_cmd();
-    void _handle_http_device_state_query();
+    void _handle_http_device_state();
+    void _handle_http_device_gh_state();
     #endif
     // END - LOCAL_FULFILLMENT
 
@@ -112,7 +113,8 @@ class FirebaseEspGh {
     )> _on_device_state_request;
 
     void _on_cmd_data_change();
-    void _fill_sys_data(FirebaseJson *system_data);
+    void _fill_sys_data(FirebaseJson *system_data, bool isFirebase);
+    void _add_timestamp(FirebaseJson *data, char *key, bool isFirebase);
 
     unsigned long _firebase_last_query_at = 0;
 
