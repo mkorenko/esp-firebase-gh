@@ -239,7 +239,7 @@ bool FirebaseEspGh::_report_online_status_loop() {
   _report_online_last_at = millis();
   FirebaseJson system_data;
   _fill_sys_data(&system_data);
-  Firebase.RTDB.set(&_fbdo, _device_root + "/state/system", &system_data);
+  Firebase.RTDB.set(&_fbdo, _device_root + "/state/_sys", &system_data);
   return true;
 }
 
